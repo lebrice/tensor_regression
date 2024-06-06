@@ -5,14 +5,25 @@ import pytest
 import torch
 from pytest_regressions import data_regression, ndarrays_regression
 
-from .fixture import PRECISION, TensorRegressionFixture
+from .fixture import TensorRegressionFixture
 
 
 def pytest_addoption(parser: pytest.Parser):
-    parser.addoption(
+    group = parser.getgroup(
+        "tensor_regression",
+        description="Options for the tensor_regression plugin.",
+        after="regressions",
+    )
+    group.addoption(
         "--gen-missing",
         action=BooleanOptionalAction,
         help="Whether to generate missing regression files or raise an error when a regression file is missing.",
+    )
+    group.addoption(
+        "--stats-rounding-precision",
+        type=int,
+        metavar="N_DIGITS",
+        help="Number of digits to round simple statistics to. Default is `None` (no rounding).",
     )
 
 
@@ -39,6 +50,10 @@ def tensor_regression(
 
     See the docstring of `TensorRegressionFixture` for more info.
     """
+    rounding: int | None = request.config.getoption(
+        "--stats-rounding-precision",
+        default=None,  # type: ignore
+    )
     return TensorRegressionFixture(
         datadir=datadir,
         original_datadir=original_datadir,
@@ -46,5 +61,5 @@ def tensor_regression(
         ndarrays_regression=ndarrays_regression,
         data_regression=data_regression,
         monkeypatch=monkeypatch,
-        simple_attributes_precision=PRECISION,
+        simple_attributes_precision=rounding,
     )

@@ -71,8 +71,7 @@ class TensorRegressionFixture:
         self.monkeypatch = monkeypatch
         self.simple_attributes_precision = simple_attributes_precision
         self.generate_missing_files: bool | None = self.request.config.getoption(
-            "--gen-missing",
-            default=None,  # type: ignore
+            "--gen-missing",  # type: ignore
         )
 
     def get_source_file(
@@ -89,11 +88,60 @@ class TensorRegressionFixture:
 
     # Would be nice if this were a singledispatch method or something similar.
 
+    def add_gitignore_file_if_needed(self):
+        current_test_data_dir = self.original_datadir
+
+        # For-elses can sometimes be useful:
+        # Try to find an existing .gitignore
+        for dir in current_test_data_dir.parents:
+            if (gitignore_file := (dir / ".gitignore")).exists():
+                break
+        else:
+            # Try to find a README.md, if found, put the .gitignore next to it.
+            for dir in current_test_data_dir.parents:
+                if (dir / "README.md").exists():
+                    gitignore_file = dir / ".gitignore"
+                    break
+            else:
+                # Worst case, create a .gitignore file in the test data directory (nest to the test
+                # module).
+                gitignore_file = current_test_data_dir / ".gitignore"
+
+        if not gitignore_file.exists():
+            logger.info(f"Making a new .gitignore file at {gitignore_file}")
+            gitignore_file.write_text(
+                "\n".join(
+                    [
+                        "# Ignore regression files containing tensors.",
+                        "*.npz",
+                    ]
+                )
+                + "\n"
+            )
+            return
+
+        if "*.npz" in gitignore_file.read_text():
+            logger.debug(
+                "There is already an entry for npz files in the gitignore file."
+            )
+            return
+
+        logger.info(f"Adding some lines to the .gitignore file at {gitignore_file}")
+        with gitignore_file.open("a") as f:
+            f.writelines(
+                [
+                    "# Ignore regression files containing tensors.",
+                    "*.npz",
+                    "",
+                ]
+            )
+
     def check(
         self,
         data_dict: Mapping[str, Any],
         tolerances: dict[str, dict[str, float]] | None = None,
         default_tolerance: dict[str, float] | None = None,
+        include_gpu_name_in_stats: bool = True,
     ) -> None:
         # IDEA:
         # - Get the hashes of each array, and actually run the regression check first with those files.
@@ -101,7 +149,7 @@ class TensorRegressionFixture:
         # NOTE: If the array hash files exist, but the full files don't, then we should just
         # re-create the full files instead of failing.
         # __tracebackhide__ = True
-
+        self.add_gitignore_file_if_needed()
         data_dict = flatten_dict(data_dict)
 
         if not isinstance(data_dict, dict):
@@ -141,6 +189,7 @@ class TensorRegressionFixture:
                     self.pre_check(
                         data_dict,
                         simple_attributes_source_file=simple_attributes_source_file,
+                        include_gpu_name_in_stats=include_gpu_name_in_stats,
                     )
 
             # We already generated the file with the full tensors (and we also already checked
@@ -186,6 +235,7 @@ class TensorRegressionFixture:
             self.pre_check(
                 data_dict,
                 simple_attributes_source_file=simple_attributes_source_file,
+                include_gpu_name_in_stats=include_gpu_name_in_stats,
             )
             return
 
@@ -197,6 +247,7 @@ class TensorRegressionFixture:
             self.pre_check(
                 data_dict,
                 simple_attributes_source_file=simple_attributes_source_file,
+                include_gpu_name_in_stats=include_gpu_name_in_stats,
             )
 
         with dont_fail_if_files_are_missing(enabled=bool(self.generate_missing_files)):
@@ -207,39 +258,25 @@ class TensorRegressionFixture:
                 default_tolerance=default_tolerance,
             )
 
-        test_dir = self.original_datadir
-        assert test_dir.exists()
-        gitignore_file = test_dir / ".gitignore"
-        if not gitignore_file.exists():
-            logger.info(f"Making a new .gitignore file at {gitignore_file}")
-            gitignore_file.write_text(
-                "\n".join(
-                    [
-                        "# Ignore full tensor files, but not the files with tensor attributes and hashes.",
-                        "*.npz",
-                    ]
-                )
-                + "\n"
-            )
-
     def pre_check(
-        self, data_dict: dict[str, Any], simple_attributes_source_file: Path
+        self,
+        data_dict: dict[str, Any],
+        simple_attributes_source_file: Path,
+        include_gpu_name_in_stats: bool,
     ) -> None:
         version_controlled_simple_attributes = get_version_controlled_attributes(
             data_dict, precision=self.simple_attributes_precision
         )
         # Run the regression check with the hashes (and don't fail if they don't exist)
         __tracebackhide__ = True
-        # TODO: Figure out how to include/use the names of the GPUs:
-        # - Should it be part of the hash? Or should there be a subfolder for each GPU type?
-        _gpu_names = get_gpu_names(data_dict)
-        if len(set(_gpu_names)) == 1:
-            gpu_name = _gpu_names[0]
-            if any(
-                isinstance(t, Tensor) and t.device.type == "cuda"
-                for t in data_dict.values()
-            ):
-                version_controlled_simple_attributes["GPU"] = gpu_name
+        if include_gpu_name_in_stats:
+            # TODO: Figure out how to include/use the names of the GPUs:
+            # - Should it be part of the hash? Or should there be a subfolder for each GPU type?
+            _gpu_names = sorted(set(get_gpu_names(data_dict)))
+            if len(_gpu_names) == 1:
+                version_controlled_simple_attributes["GPU"] = _gpu_names[0]
+            elif _gpu_names:
+                version_controlled_simple_attributes["GPUS"] = _gpu_names
 
         self.data_regression.check(
             version_controlled_simple_attributes, fullpath=simple_attributes_source_file
@@ -321,7 +358,7 @@ def get_gpu_names(data_dict: dict[str, Any]) -> list[str]:
     return sorted(
         set(
             torch.cuda.get_device_name(tensor.device)
-            for tensor in data_dict.values()
+            for tensor in flatten_dict(data_dict).values()
             if isinstance(tensor, Tensor) and tensor.device.type == "cuda"
         )
     )
