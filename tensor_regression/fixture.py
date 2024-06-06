@@ -128,12 +128,14 @@ class TensorRegressionFixture:
 
         logger.info(f"Adding some lines to the .gitignore file at {gitignore_file}")
         with gitignore_file.open("a") as f:
-            f.writelines(
-                [
-                    "# Ignore regression files containing tensors.",
-                    "*.npz",
-                    "",
-                ]
+            f.write(
+                "\n".join(
+                    [
+                        "# Ignore regression files containing tensors.",
+                        "*.npz",
+                        "",
+                    ]
+                )
             )
 
     def check(
