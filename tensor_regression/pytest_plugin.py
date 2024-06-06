@@ -5,7 +5,7 @@ import pytest
 import torch
 from pytest_regressions import data_regression, ndarrays_regression
 
-from .fixture import TensorRegressionFixture
+from .fixture import PRECISION, TensorRegressionFixture
 
 
 def pytest_addoption(parser: pytest.Parser):
@@ -46,4 +46,5 @@ def tensor_regression(
         ndarrays_regression=ndarrays_regression,
         data_regression=data_regression,
         monkeypatch=monkeypatch,
+        simple_attributes_precision=PRECISION,
     )

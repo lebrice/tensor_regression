@@ -1,5 +1,4 @@
 import contextlib
-import functools
 import os
 import re
 import warnings
@@ -16,62 +15,30 @@ from pytest_regressions.data_regression import DataRegressionFixture
 from pytest_regressions.ndarrays_regression import NDArraysRegressionFixture
 from torch import Tensor
 
-from .flatten import flatten_dict, get_shape_ish
+from .flatten import flatten_dict
+from .stats import get_simple_attributes
+from .to_array import to_ndarray
 
 logger = get_logger(__name__)
 
-PRECISION = 3
+PRECISION: int | None = None
 """Number of decimals used when rounding the simple stats of Tensor / ndarray in the pre-check.
 
 Full precision is used in the actual regression check, but this is just for the simple attributes
 (min, max, mean, etc.) which seem to be slightly different on the GitHub CI than on a local
 machine.
+
+TODO: The way rounding is done here is actually very dumb. round(1e-5, 3) gives 0.000.
 """
 
 
-@functools.singledispatch
-def to_ndarray(v: Any) -> np.ndarray | None:
-    return np.asarray(v)
-
-
-@to_ndarray.register(type(None))
-def _none_to_ndarray(v: None) -> None:
-    return None
-
-
-@to_ndarray.register(list)
-def _list_to_ndarray(v: list) -> np.ndarray:
-    if all(isinstance(v_i, list) for v_i in v):
-        lengths = [len(v_i) for v_i in v]
-        if len(set(lengths)) != 1:
-            # List of lists of something, (e.g. a nested tensor-like list of dicts for instance).
-            if all(isinstance(v_i_j, dict) and not v_i_j for v_i in v for v_i_j in v_i):
-                # all empty dicts!
-                return np.asarray([f"list of {len_i} empty dicts" for len_i in lengths])
-            raise NotImplementedError(v)
-    return np.asarray(v)
-
-
-@to_ndarray.register(Tensor)
-def _tensor_to_ndarray(v: Tensor) -> np.ndarray:
-    if v.is_nested:
-        v = v.to_padded_tensor(padding=0.0)
-    return v.detach().cpu().numpy()
-
-
-@functools.singledispatch
-def _hash(v: Any) -> int:
-    return hash(v)
-
-
-@_hash.register(Tensor)
-def tensor_hash(tensor: Tensor) -> int:
-    return hash(tuple(tensor.flatten().tolist()))
-
-
-@_hash.register(np.ndarray)
-def ndarray_hash(array: np.ndarray) -> int:
-    return hash(tuple(array.flat))
+def get_version_controlled_attributes(
+    data_dict: dict[str, Any], precision: int | None
+) -> dict[str, Any]:
+    return {
+        key: get_simple_attributes(value, precision=precision)
+        for key, value in data_dict.items()
+    }
 
 
 class TensorRegressionFixture:
@@ -93,7 +60,7 @@ class TensorRegressionFixture:
         ndarrays_regression: NDArraysRegressionFixture,
         data_regression: DataRegressionFixture,
         monkeypatch: pytest.MonkeyPatch,
-        simple_attributes_precision: int = PRECISION,
+        simple_attributes_precision: int | None = PRECISION,
     ) -> None:
         self.request = request
         self.datadir = datadir
@@ -349,74 +316,6 @@ def get_test_source_and_temp_file_paths(
     return source_file, test_file
 
 
-@functools.singledispatch
-def get_simple_attributes(value: Any, precision: int) -> Any:
-    raise NotImplementedError(
-        f"get_simple_attributes doesn't have a registered handler for values of type {type(value)}"
-    )
-
-
-@get_simple_attributes.register(type(None))
-def _get_none_attributes(value: None, precision: int):
-    return {"type": "None"}
-
-
-@get_simple_attributes.register(bool)
-@get_simple_attributes.register(int | float | str)
-def _get_bool_attributes(value: Any, precision: int):
-    return {"value": value, "type": type(value).__name__}
-
-
-@get_simple_attributes.register(list)
-def list_simple_attributes(some_list: list[Any], precision: int):
-    return {
-        "length": len(some_list),
-        "item_types": sorted(set(type(item).__name__ for item in some_list)),
-    }
-
-
-@get_simple_attributes.register(dict)
-def dict_simple_attributes(some_dict: dict[str, Any], precision: int):
-    return {
-        k: get_simple_attributes(v, precision=precision) for k, v in some_dict.items()
-    }
-
-
-@get_simple_attributes.register(np.ndarray)
-def ndarray_simple_attributes(array: np.ndarray, precision: int) -> dict:
-    return {
-        "shape": tuple(array.shape),
-        "hash": _hash(array),
-        "min": round(array.min().item(), precision),
-        "max": round(array.max().item(), precision),
-        "sum": round(array.sum().item(), precision),
-        "mean": round(array.mean(), precision),
-    }
-
-
-@get_simple_attributes.register(Tensor)
-def tensor_simple_attributes(tensor: Tensor, precision: int) -> dict:
-    if tensor.is_nested:
-        # assert not [tensor_i.any() for tensor_i in tensor.unbind()], tensor
-        # TODO: It might be a good idea to make a distinction here between '0' as the default, and
-        # '0' as a value in the tensor? Hopefully this should be clear enough.
-        tensor = tensor.to_padded_tensor(padding=0.0)
-
-    return {
-        "shape": tuple(tensor.shape) if not tensor.is_nested else get_shape_ish(tensor),
-        "hash": _hash(tensor),
-        "min": round(tensor.min().item(), precision),
-        "max": round(tensor.max().item(), precision),
-        "sum": round(tensor.sum().item(), precision),
-        "mean": round(tensor.float().mean().item(), precision),
-        "device": (
-            "cpu"
-            if tensor.device.type == "cpu"
-            else f"{tensor.device.type}:{tensor.device.index}"
-        ),
-    }
-
-
 def get_gpu_names(data_dict: dict[str, Any]) -> list[str]:
     """Returns the names of the GPUS that tensors in this dict are on."""
     return sorted(
@@ -426,15 +325,6 @@ def get_gpu_names(data_dict: dict[str, Any]) -> list[str]:
             if isinstance(tensor, Tensor) and tensor.device.type == "cuda"
         )
     )
-
-
-def get_version_controlled_attributes(
-    data_dict: dict[str, Any], precision: int
-) -> dict[str, Any]:
-    return {
-        key: get_simple_attributes(value, precision=precision)
-        for key, value in data_dict.items()
-    }
 
 
 class FilesDidntExist(Failed):
