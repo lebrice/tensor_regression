@@ -131,6 +131,7 @@ class TensorRegressionFixture:
             f.write(
                 "\n".join(
                     [
+                        "",
                         "# Ignore regression files containing tensors.",
                         "*.npz",
                         "",
