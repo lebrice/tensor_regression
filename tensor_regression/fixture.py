@@ -132,7 +132,7 @@ class TensorRegressionFixture:
                 "\n".join(
                     [
                         "",
-                        "# Ignore regression files containing tensors.",
+                        "# Ignore tensor regression files.",
                         "*.npz",
                         "",
                     ]
