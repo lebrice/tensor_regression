@@ -7,7 +7,7 @@ license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.10"
 torch = "^2.0.0"
 pytest-regressions = "^2.5.0"
 numpy = "^1.26.4"
