@@ -22,7 +22,9 @@ def _get_none_attributes(value: None, precision: int | None):
 
 
 @get_simple_attributes.register(bool)
-@get_simple_attributes.register(int | float | str)
+@get_simple_attributes.register(int)
+@get_simple_attributes.register(float)
+@get_simple_attributes.register(str)
 def _get_bool_attributes(value: Any, precision: int | None):
     return {"value": value, "type": type(value).__name__}
 
