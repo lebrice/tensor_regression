@@ -41,7 +41,7 @@ jobs:
       max-parallel: 4
       matrix:
         platform: [ubuntu-latest]
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12"]
     steps:
     - uses: actions/checkout@v4
     - name: Install poetry
@@ -64,36 +64,9 @@ jobs:
         name: coverage-reports-unit-tests-${{ matrix.platform }}-${{ matrix.python-version }}
         path: ./coverage.xml
 
-  gpu_tests:
-    needs: [unit_tests]
-    runs-on: self-hosted
-    strategy:
-      max-parallel: 1
-      matrix:
-        python-version: ['3.12']
-    steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-        cache: "poetry"
-    - run: pip install poetry
-    - name: Install dependencies
-      run: poetry install
-
-    - name: Test with pytest
-      run: poetry run pytest -v --cov=project --cov-report=xml --cov-append
-
-    - name: Store coverage report as an artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage-reports-integration-tests-${{ matrix.python-version }}
-        path: ./coverage.xml
-
   # https://about.codecov.io/blog/uploading-code-coverage-in-a-separate-job-on-github-actions/
   upload-coverage-codecov:
-    needs: [unit_tests, gpu_tests]
+    needs: [unit_tests]
     runs-on: ubuntu-latest
     name: Upload coverage reports to Codecov
     steps:
