@@ -38,19 +38,21 @@ def seeded(seed: int, devices: list[torch.device] | None = None):
     np.random.set_state(np_random_state)
 
 
-@pytest.fixture(params=[123], ids="seed={}".format)
+@pytest.fixture(autouse=True)
 def seed(request: pytest.FixtureRequest, device: torch.device):
-    seed: int = getattr(request, "param")
+    seed: int = getattr(request, "param", 123)
     with seeded(seed=seed):
         yield seed
 
 
+@pytest.mark.parametrize("label", [None, "some_label"], ids="label={}".format)
 def test_check_tensor(
     tensor_regression: TensorRegressionFixture,
     seed: int,
     device: torch.device,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
+    label: str | None,
 ):
     # Make it so our tensor regression fixture operates within a temporary directory, instead of
     # the actual test data dir (next to this test).
@@ -59,13 +61,24 @@ def test_check_tensor(
 
     gen = torch.Generator(device=device).manual_seed(seed)
     x = torch.randn(3, 3, generator=gen, device=device)
-    tensor_regression.check({"x": x}, include_gpu_name_in_stats=False)
+    tensor_regression.check(
+        {"x": x}, additional_label=label, include_gpu_name_in_stats=False
+    )
 
     # Check that stats were saved:
     # todo: use a pytest_regression fixture for the generated stats instead of hard-coding them? Or
     # would that become too confusing?
-    stats_file = tmp_path / test_check_tensor.__name__ / f"seed_{seed}.yaml"
+
+    # TODO: A bit confusing here that the subfolder is part of the stats file, because this test is parametrized.
+    if label is None:
+        stats_file = tmp_path / test_check_tensor.__name__ / f"label_{label}.yaml"
+    else:
+        stats_file = (
+            tmp_path / test_check_tensor.__name__ / label / f"label_{label}.yaml"
+        )
+
     assert stats_file.exists()
+
     assert yaml.safe_load(stats_file.read_text()) == yaml.safe_load(
         textwrap.dedent(
             f"""\
@@ -84,7 +97,7 @@ def test_check_tensor(
     )
 
     # Check the saved tensor/array:
-    array_file = tmp_path / test_check_tensor.__name__ / f"seed_{seed}.npz"
+    array_file = stats_file.with_suffix(".npz")
     saved_x = np.load(array_file)["x"]
     np.testing.assert_equal(saved_x, x.cpu().numpy())
 
@@ -92,3 +105,28 @@ def test_check_tensor(
     gitignore_file = tmp_path / ".gitignore"
     assert gitignore_file.exists()
     assert "*.npz" in gitignore_file.read_text().splitlines()
+
+
+def test_non_parametrized_test(
+    tensor_regression: TensorRegressionFixture,
+    seed: int,
+    device: torch.device,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+):
+    # Make it so our tensor regression fixture operates within a temporary directory, instead of
+    # the actual test data dir (next to this test).
+    monkeypatch.setattr(tensor_regression, "original_datadir", tmp_path)
+    monkeypatch.setattr(tensor_regression, "generate_missing_files", True)
+
+    gen = torch.Generator(device=device).manual_seed(seed)
+    x = torch.randn(3, 3, generator=gen, device=device)
+    tensor_regression.check({"x": x}, include_gpu_name_in_stats=False)
+    stats_file = tmp_path / f"{test_non_parametrized_test.__name__}.yaml"
+    assert stats_file.exists()
+
+    tensor_regression.check(
+        {"x": x.cpu()}, additional_label="cpu", include_gpu_name_in_stats=False
+    )
+    stats_file = tmp_path / test_non_parametrized_test.__name__ / "cpu.yaml"
+    assert stats_file.exists()

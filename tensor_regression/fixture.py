@@ -89,7 +89,7 @@ class TensorRegressionFixture:
             request=self.request,
             original_datadir=self.original_datadir,
             datadir=self.datadir,
-            additional_subfolder=additional_subfolder,
+            additional_label=additional_subfolder,
         )
         return source_file
 
@@ -152,7 +152,7 @@ class TensorRegressionFixture:
         tolerances: dict[str, Tolerance] | None = None,
         default_tolerance: Tolerance | None = None,
         include_gpu_name_in_stats: bool = True,
-        subfolder: str | None = None,
+        additional_label: str | None = None,
     ) -> None:
         """Perform a regression check with the given data.
 
@@ -168,8 +168,9 @@ class TensorRegressionFixture:
         tolerances: Tolerances to use for each value. Same as in `NDArraysRegressionFixture.check`.
         default_tolerance: Default tolerances to use. Same as in `NDArraysRegressionFixture.check`.
         include_gpu_name_in_stats: Whether to save the GPU model in the stats file or not.
-        subfolder: An optional subfolder to save the stats and regression files in. This can be \
-            useful to differentiate cpu/gpu runs of the same test (e.g. in the GitHub CI).
+        additional_label: An optional label associated with this test, which changes where the \
+            stats and regression files will be saved. This can be useful to differentiate cpu/gpu \
+            runs of the same test (e.g. in the GitHub CI).
         """
         # IDEA:
         # - Get the hashes of each array, and actually run the regression check first with those files.
@@ -189,12 +190,12 @@ class TensorRegressionFixture:
 
         # File some simple attributes of the full arrays/tensors. This one is saved with git.
         simple_attributes_source_file = self.get_source_file(
-            extension=".yaml", additional_subfolder=subfolder
+            extension=".yaml", additional_subfolder=additional_label
         )
 
         # File with the full arrays/tensors. This one is ignored by git.
         arrays_source_file = self.get_source_file(
-            extension=".npz", additional_subfolder=subfolder
+            extension=".npz", additional_subfolder=additional_label
         )
 
         regen_all = self.request.config.getoption("regen_all")
@@ -354,7 +355,7 @@ def get_test_source_and_temp_file_paths(
     request: pytest.FixtureRequest,
     original_datadir: Path,
     datadir: Path,
-    additional_subfolder: str | None = None,
+    additional_label: str | None = None,
 ) -> tuple[Path, Path]:
     """Returns the path to the (maybe version controlled) source file and the path to the temporary
     file where test results might be generated during a regression test.
@@ -370,15 +371,25 @@ def get_test_source_and_temp_file_paths(
         overrides_name = overrides_name.rstrip("_")
 
     if overrides_name:
-        # There are overrides, so use a subdirectory.
-        relative_path = Path(request.node.function.__name__) / overrides_name
+        # There are overrides, so use a subdirectory to store the yaml files.
+        if additional_label:
+            # /.../test_function/additional_label/overrides_name.yaml
+            relative_path = (
+                Path(request.node.function.__name__) / additional_label / overrides_name
+            )
+        else:
+            # /.../test_function/overrides_name.yaml
+            relative_path = Path(request.node.function.__name__) / overrides_name
+    elif additional_label:
+        # No overrides, but an additional label is passed!
+        # /.../test_function/additional_label.yaml
+        relative_path = Path(request.node.function.__name__) / additional_label
     else:
-        # There are no overrides, so use the regular base name.
+        # There are no overrides, so store a file at `test_function.yaml` for example.
+        # /.../test_function.yaml
         relative_path = Path(basename)
 
     relative_path = relative_path.with_suffix(extension)
-    if additional_subfolder:
-        relative_path = relative_path.parent / additional_subfolder / relative_path.name
 
     source_file = original_datadir / relative_path
     test_file = datadir / relative_path
