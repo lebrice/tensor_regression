@@ -5,7 +5,7 @@ import warnings
 from collections.abc import Mapping
 from logging import getLogger as get_logger
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 import numpy as np
 import pytest
@@ -39,6 +39,13 @@ def get_version_controlled_attributes(
         key: get_simple_attributes(value, precision=precision)
         for key, value in data_dict.items()
     }
+
+
+class Tolerance(TypedDict, total=False):
+    """Kwargs for the `numpy.testing.assert_allclose` function."""
+
+    atol: float
+    rtol: float
 
 
 class TensorRegressionFixture:
@@ -142,10 +149,28 @@ class TensorRegressionFixture:
     def check(
         self,
         data_dict: Mapping[str, Any],
-        tolerances: dict[str, dict[str, float]] | None = None,
-        default_tolerance: dict[str, float] | None = None,
+        tolerances: dict[str, Tolerance] | None = None,
+        default_tolerance: Tolerance | None = None,
         include_gpu_name_in_stats: bool = True,
+        subfolder: str | None = None,
     ) -> None:
+        """Perform a regression check with the given data.
+
+        Calculates some simple statistics on the tensors checks them against a source-controlled
+        yaml regression file.
+
+        If this first check passes, then the full tensors are checked against a gitignored npz
+        regression file (creating it if the `--gen-missing` flag is passed).
+
+        Parameters
+        ----------
+        data_dict: Tensors to check against previous runs of this test.
+        tolerances: Tolerances to use for each value. Same as in `NDArraysRegressionFixture.check`.
+        default_tolerance: Default tolerances to use. Same as in `NDArraysRegressionFixture.check`.
+        include_gpu_name_in_stats: Whether to save the GPU model in the stats file or not.
+        subfolder: An optional subfolder to save the stats and regression files in. This can be \
+            useful to differentiate cpu/gpu runs of the same test (e.g. in the GitHub CI).
+        """
         # IDEA:
         # - Get the hashes of each array, and actually run the regression check first with those files.
         # - Then, if that check passes, run the actual check with the full files.
@@ -163,10 +188,14 @@ class TensorRegressionFixture:
             )
 
         # File some simple attributes of the full arrays/tensors. This one is saved with git.
-        simple_attributes_source_file = self.get_source_file(extension=".yaml")
+        simple_attributes_source_file = self.get_source_file(
+            extension=".yaml", additional_subfolder=subfolder
+        )
 
         # File with the full arrays/tensors. This one is ignored by git.
-        arrays_source_file = self.get_source_file(extension=".npz")
+        arrays_source_file = self.get_source_file(
+            extension=".npz", additional_subfolder=subfolder
+        )
 
         regen_all = self.request.config.getoption("regen_all")
         assert isinstance(regen_all, bool)
@@ -290,8 +319,8 @@ class TensorRegressionFixture:
         data_dict: dict[str, Any],
         basename: str | None = None,
         fullpath: os.PathLike[str] | None = None,
-        tolerances: dict[str, dict[str, float]] | None = None,
-        default_tolerance: dict[str, float] | None = None,
+        tolerances: dict[str, Tolerance] | None = None,
+        default_tolerance: dict[str, Tolerance] | None = None,
     ) -> None:
         array_dict: dict[str, np.ndarray] = {}
         for key, array in data_dict.items():
