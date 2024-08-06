@@ -68,6 +68,8 @@ class TensorRegressionFixture:
         data_regression: DataRegressionFixture,
         monkeypatch: pytest.MonkeyPatch,
         simple_attributes_precision: int | None = PRECISION,
+        generate_missing_files: bool | None = None,
+        skip_if_files_missing: bool | None = None,
     ) -> None:
         self.request = request
         self.datadir = datadir
@@ -77,9 +79,8 @@ class TensorRegressionFixture:
         self.data_regression = data_regression
         self.monkeypatch = monkeypatch
         self.simple_attributes_precision = simple_attributes_precision
-        self.generate_missing_files: bool | None = self.request.config.getoption(
-            "--gen-missing",  # type: ignore
-        )
+        self.generate_missing_files = generate_missing_files
+        self.skip_if_files_missing = skip_if_files_missing
 
     def get_source_file(
         self, extension: str, additional_subfolder: str | None = None
@@ -153,6 +154,7 @@ class TensorRegressionFixture:
         default_tolerance: Tolerance | None = None,
         include_gpu_name_in_stats: bool = True,
         additional_label: str | None = None,
+        skip_if_files_missing: bool = False,
     ) -> None:
         """Perform a regression check with the given data.
 
@@ -198,14 +200,25 @@ class TensorRegressionFixture:
             extension=".npz", additional_subfolder=additional_label
         )
 
+        if skip_if_files_missing and not (
+            simple_attributes_source_file.exists() and arrays_source_file.exists()
+        ):
+            pytest.skip(
+                reason="Regression files missing. Skipping check instead of creating files and failing."
+            )
+
         regen_all = self.request.config.getoption("regen_all")
         assert isinstance(regen_all, bool)
 
         if regen_all:
-            assert self.generate_missing_files in [
-                True,
-                None,
-            ], "--gen-missing contradicts --regen-all!"
+            if self.generate_missing_files:
+                raise RuntimeError(
+                    "--gen-missing can't be used at the same time as --regen-all!"
+                )
+            if skip_if_files_missing:
+                raise RuntimeError(
+                    "--skip-if-files-missing can't be used at the same time as --regen-all!"
+                )
             # Regenerate everything.
             if arrays_source_file.exists():
                 arrays_source_file.unlink()
@@ -251,9 +264,6 @@ class TensorRegressionFixture:
             )
             logger.debug(f"Regenerating the full arrays at {arrays_source_file}")
             # Go straight to the full check.
-            # TODO: Need to get the full error when the tensors change instead of just the check
-            # for the hash, which should only be used when re-creating the full regression files.
-
             with dont_fail_if_files_are_missing():
                 self.regular_check(
                     data_dict=data_dict,
@@ -321,7 +331,7 @@ class TensorRegressionFixture:
         basename: str | None = None,
         fullpath: os.PathLike[str] | None = None,
         tolerances: dict[str, Tolerance] | None = None,
-        default_tolerance: dict[str, Tolerance] | None = None,
+        default_tolerance: Tolerance | None = None,
     ) -> None:
         array_dict: dict[str, np.ndarray] = {}
         for key, array in data_dict.items():

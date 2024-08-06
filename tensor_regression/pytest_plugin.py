@@ -25,6 +25,11 @@ def pytest_addoption(parser: pytest.Parser):
         metavar="N_DIGITS",
         help="Number of digits to round simple statistics to. Default is `None` (no rounding).",
     )
+    group.addoption(
+        "--skip-if-files-missing",
+        action=BooleanOptionalAction,
+        help="Skip the check if the stats file doesn't exist, instead of failing. Also avoids creating new files.",
+    )
 
 
 @pytest.fixture
@@ -54,6 +59,13 @@ def tensor_regression(
         "--stats-rounding-precision",
         default=None,  # type: ignore
     )
+    generate_missing_files: bool | None = request.config.getoption(
+        "--gen-missing",  # type: ignore
+    )
+    skip_if_files_missing: bool | None = request.config.getoption(
+        "--skip-if-files-missing",  # type: ignore
+    )
+
     return TensorRegressionFixture(
         datadir=datadir,
         original_datadir=original_datadir,
@@ -62,4 +74,6 @@ def tensor_regression(
         data_regression=data_regression,
         monkeypatch=monkeypatch,
         simple_attributes_precision=rounding,
+        generate_missing_files=generate_missing_files,
+        skip_if_files_missing=skip_if_files_missing,
     )
