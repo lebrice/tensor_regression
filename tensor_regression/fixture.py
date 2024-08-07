@@ -164,7 +164,7 @@ class TensorRegressionFixture:
 
         Parameters
         ----------
-        
+
         data_dict: Tensors to check against previous runs of this test.
         tolerances: Tolerances to use for each value. Same as in `NDArraysRegressionFixture.check`.
         default_tolerance: Default tolerances to use. Same as in `NDArraysRegressionFixture.check`.
@@ -172,7 +172,6 @@ class TensorRegressionFixture:
         additional_label: An optional label associated with this test, which changes where the \
             stats and regression files will be saved. This can be useful to differentiate cpu/gpu \
             runs of the same test (e.g. in the GitHub CI).
-        
         """
         # IDEA:
         # - Get the hashes of each array, and actually run the regression check first with those files.
