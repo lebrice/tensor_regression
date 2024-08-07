@@ -154,7 +154,6 @@ class TensorRegressionFixture:
         default_tolerance: Tolerance | None = None,
         include_gpu_name_in_stats: bool = True,
         additional_label: str | None = None,
-        skip_if_files_missing: bool = False,
     ) -> None:
         """Perform a regression check with the given data.
 
@@ -200,7 +199,7 @@ class TensorRegressionFixture:
             extension=".npz", additional_subfolder=additional_label
         )
 
-        if skip_if_files_missing and not (
+        if self.skip_if_files_missing and not (
             simple_attributes_source_file.exists() and arrays_source_file.exists()
         ):
             pytest.skip(
@@ -215,7 +214,7 @@ class TensorRegressionFixture:
                 raise RuntimeError(
                     "--gen-missing can't be used at the same time as --regen-all!"
                 )
-            if skip_if_files_missing:
+            if self.skip_if_files_missing:
                 raise RuntimeError(
                     "--skip-if-files-missing can't be used at the same time as --regen-all!"
                 )
