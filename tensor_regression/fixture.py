@@ -1,7 +1,6 @@
 import contextlib
 import os
 import re
-import warnings
 from collections.abc import Mapping
 from logging import getLogger as get_logger
 from pathlib import Path
@@ -428,7 +427,7 @@ def dont_fail_if_files_are_missing(enabled: bool = True):
     except FilesDidntExist as exc:
         if enabled:
             logger.warning(exc)
-            warnings.warn(RuntimeWarning(exc.msg), stacklevel=2)
+            # warnings.warn(RuntimeWarning(exc.msg), stacklevel=3)
         else:
             raise
 
