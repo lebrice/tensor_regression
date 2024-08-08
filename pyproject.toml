@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tensor-regression"
-version = "0.0.2.post3.dev0+0796943"
+version = "0.0.5.post4.dev0+8178fae"
 description = "A small wrapper around pytest_regressions for Tensors"
 authors = ["Fabrice Normandin <normandf@mila.quebec>"]
 license = "MIT"
