@@ -165,6 +165,7 @@ class TensorRegressionFixture:
 
         Parameters
         ----------
+
         data_dict: Tensors to check against previous runs of this test.
         tolerances: Tolerances to use for each value. Same as in `NDArraysRegressionFixture.check`.
         default_tolerance: Default tolerances to use. Same as in `NDArraysRegressionFixture.check`.
