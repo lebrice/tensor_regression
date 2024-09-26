@@ -424,9 +424,10 @@ def dont_fail_if_files_are_missing(enabled: bool = True):
     try:
         with _catch_fails_with_files_didnt_exist():
             yield
-    except FilesDidntExist as exc:
+    except FilesDidntExist:
         if enabled:
-            logger.warning(exc)
+            pass
+            # logger.warning(exc)
             # warnings.warn(RuntimeWarning(exc.msg), stacklevel=3)
         else:
             raise
