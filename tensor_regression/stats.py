@@ -44,20 +44,21 @@ def dict_simple_attributes(some_dict: dict[str, Any], precision: int | None):
     }
 
 
+def _maybe_round(v, precision: int | None):
+    if precision is not None:
+        return np.format_float_scientific(v, precision=precision)
+    return v
+
+
 @get_simple_attributes.register(np.ndarray)
 def ndarray_simple_attributes(array: np.ndarray, precision: int | None) -> dict:
-    def _maybe_round(v):
-        if precision is not None:
-            return np.format_float_scientific(v, precision=precision)
-        return v
-
     return {
         "shape": tuple(array.shape),
         "hash": _hash(array),
-        "min": _maybe_round(array.min().item()),
-        "max": _maybe_round(array.max().item()),
-        "sum": _maybe_round(array.sum().item()),
-        "mean": _maybe_round(array.mean()),
+        "min": _maybe_round(array.min().item(), precision=precision),
+        "max": _maybe_round(array.max().item(), precision=precision),
+        "sum": _maybe_round(array.sum().item(), precision=precision),
+        "mean": _maybe_round(array.mean(), precision=precision),
     }
 
 
@@ -69,18 +70,15 @@ def tensor_simple_attributes(tensor: Tensor, precision: int | None) -> dict:
         # '0' as a value in the tensor? Hopefully this should be clear enough.
         tensor = tensor.to_padded_tensor(padding=0.0)
 
-    def _maybe_round(v):
-        return round(v, precision) if precision is not None else v
-
     return {
         "shape": tuple(tensor.shape)
         if not tensor.is_nested
         else _get_shape_ish(tensor),
         "hash": _hash(tensor),
-        "min": _maybe_round(tensor.min().item()),
-        "max": _maybe_round(tensor.max().item()),
-        "sum": _maybe_round(tensor.sum().item()),
-        "mean": _maybe_round(tensor.float().mean().item()),
+        "min": _maybe_round(tensor.min().item(), precision),
+        "max": _maybe_round(tensor.max().item(), precision),
+        "sum": _maybe_round(tensor.sum().item(), precision),
+        "mean": _maybe_round(tensor.float().mean().item(), precision),
         "device": (
             "cpu"
             if tensor.device.type == "cpu"
