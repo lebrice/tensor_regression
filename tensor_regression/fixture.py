@@ -20,16 +20,6 @@ from .to_array import to_ndarray
 
 logger = get_logger(__name__)
 
-PRECISION: int | None = None
-"""Number of decimals used when rounding the simple stats of Tensor / ndarray in the pre-check.
-
-Full precision is used in the actual regression check, but this is just for the simple attributes
-(min, max, mean, etc.) which seem to be slightly different on the GitHub CI than on a local
-machine.
-
-TODO: The way rounding is done here is actually very dumb. round(1e-5, 3) gives 0.000.
-"""
-
 
 def get_version_controlled_attributes(
     data_dict: dict[str, Any], precision: int | None
@@ -66,7 +56,7 @@ class TensorRegressionFixture:
         ndarrays_regression: NDArraysRegressionFixture,
         data_regression: DataRegressionFixture,
         monkeypatch: pytest.MonkeyPatch,
-        simple_attributes_precision: int | None = PRECISION,
+        simple_attributes_precision: int | None = None,
         generate_missing_files: bool | None = None,
         skip_if_files_missing: bool | None = None,
     ) -> None:
@@ -78,6 +68,14 @@ class TensorRegressionFixture:
         self.data_regression = data_regression
         self.monkeypatch = monkeypatch
         self.simple_attributes_precision = simple_attributes_precision
+        """Number of decimals used when rounding the simple stats of Tensor / ndarray in the pre-
+        check.
+
+        Full precision is used in the actual regression check, but this is just for the simple
+        attributes (min, max, mean, etc.) which seem to be slightly different on the GitHub CI than
+        on a local machine.
+        """
+
         self.generate_missing_files = generate_missing_files
         self.skip_if_files_missing = skip_if_files_missing
 

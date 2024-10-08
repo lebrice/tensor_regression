@@ -47,7 +47,9 @@ def dict_simple_attributes(some_dict: dict[str, Any], precision: int | None):
 @get_simple_attributes.register(np.ndarray)
 def ndarray_simple_attributes(array: np.ndarray, precision: int | None) -> dict:
     def _maybe_round(v):
-        return round(v, precision) if precision is not None else v
+        if precision is not None:
+            return np.format_float_scientific(v, precision=precision)
+        return v
 
     return {
         "shape": tuple(array.shape),
