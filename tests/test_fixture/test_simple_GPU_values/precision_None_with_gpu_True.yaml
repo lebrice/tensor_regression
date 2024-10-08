@@ -1,4 +1,4 @@
-GPU: NVIDIA TITAN RTX
+GPU: FAKE_GPU_NAME
 a:
   device: cuda:0
   hash: -8753497827991233192

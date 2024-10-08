@@ -34,6 +34,12 @@ def list_simple_attributes(some_list: list[Any], precision: int | None):
     return {
         "length": len(some_list),
         "item_types": sorted(set(type(item).__name__ for item in some_list)),
+        **{
+            f"{i}": get_simple_attributes(item, precision=precision)
+            for i, item in enumerate(
+                some_list[:10]
+            )  # don't show all items, becomes redundant.
+        },
     }
 
 

@@ -1,4 +1,3 @@
-GPU: NVIDIA TITAN RTX
 a:
   device: cuda:0
   hash: -8753497827991233192
