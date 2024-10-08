@@ -118,3 +118,33 @@ def test_non_parametrized_test(
     )
     stats_file = tmp_path / test_non_parametrized_test.__name__ / "cpu.yaml"
     assert stats_file.exists()
+
+
+def test_reproduce_hashing_issue(
+    tensor_regression: TensorRegressionFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    ndarrays_regression: NDArraysRegressionFixture,
+):
+    """BUG:
+    - If the simple stats file is present, then its content is effectively ignored!
+    --> This causes issues with our inconsistent _hash function for tensors!
+    """
+    # Make it so our tensor regression fixture operates within a temporary directory, instead of
+    # the actual test data dir (next to this test).
+    monkeypatch.setattr(tensor_regression, "original_datadir", tmp_path)
+    # Reproduce the issue:
+    stats_file = (tmp_path / test_reproduce_hashing_issue.__name__).with_suffix(".yaml")
+    arrays_file = stats_file.with_suffix(".npz")
+
+    # Create the arrays file.
+    from _pytest.outcomes import Failed
+
+    with pytest.raises((AssertionError, Failed)):
+        ndarrays_regression.check({"x": np.zeros(1)}, fullpath=arrays_file)
+
+    # Create a stats file with garbage contents
+    stats_file.write_text("garbage")
+
+    # this will *not* raise an error!
+    tensor_regression.check({"x": torch.zeros(1)}, include_gpu_name_in_stats=False)
