@@ -1,0 +1,29 @@
+GPU: FAKE_GPU_NAME
+a:
+  device: cpu
+  hash: -8753497827991233192
+  max: 0.0
+  mean: 0.0
+  min: 0.0
+  shape:
+  - 1
+  sum: 0.0
+b:
+  device: cpu
+  hash: -3887507461980948581
+  max: 0.866521954536438
+  mean: 0.3462790250778198
+  min: 0.07397246360778809
+  shape:
+  - 3
+  - 3
+  sum: 3.116511344909668
+some_int:
+  device: cpu
+  hash: 891674017800185211
+  max: 4
+  mean: 2.0
+  min: 0
+  shape:
+  - 5
+  sum: 10

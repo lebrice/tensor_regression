@@ -1,0 +1,28 @@
+a:
+  device: cuda:0
+  hash: -8753497827991233192
+  max: '0.e+00'
+  mean: '0.e+00'
+  min: '0.e+00'
+  shape:
+  - 1
+  sum: '0.e+00'
+b:
+  device: cuda:0
+  hash: -3124714033082513295
+  max: '9.448e-01'
+  mean: '4.185e-01'
+  min: '7.865e-03'
+  shape:
+  - 3
+  - 3
+  sum: '3.766e+00'
+some_int:
+  device: cuda:0
+  hash: 891674017800185211
+  max: 4
+  mean: '2.e+00'
+  min: 0
+  shape:
+  - 5
+  sum: 10

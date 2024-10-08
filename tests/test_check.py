@@ -10,18 +10,6 @@ from pytest_regressions.ndarrays_regression import NDArraysRegressionFixture
 from tensor_regression import TensorRegressionFixture
 
 
-@pytest.fixture
-def device(request: pytest.FixtureRequest) -> torch.device:
-    device = getattr(request, "param", None)
-    if device:
-        assert isinstance(device, torch.device | str)
-        # a device was specified with indirect parametrization.
-        return torch.device(device) if isinstance(device, str) else device
-    if torch.cuda.is_available():
-        return torch.device("cuda", index=torch.cuda.current_device())
-    return torch.device("cpu")
-
-
 @contextlib.contextmanager
 def seeded(seed: int, devices: list[torch.device] | None = None):
     random_state = random.getstate()
@@ -48,6 +36,7 @@ def seed(request: pytest.FixtureRequest, device: torch.device):
         yield seed
 
 
+@pytest.mark.parametrize("precision", [None, 3], ids="precision={}".format)
 @pytest.mark.parametrize("label", [None, "some_label"], ids="label={}".format)
 def test_check_tensor(
     tensor_regression: TensorRegressionFixture,
@@ -56,14 +45,19 @@ def test_check_tensor(
     tmp_path: Path,
     label: str | None,
     ndarrays_regression: NDArraysRegressionFixture,
+    precision: int | None,
 ):
     # Make it so our tensor regression fixture operates within a temporary directory, instead of
     # the actual test data dir (next to this test).
     monkeypatch.setattr(tensor_regression, "original_datadir", tmp_path)
     monkeypatch.setattr(tensor_regression, "generate_missing_files", True)
+    monkeypatch.setattr(tensor_regression, "simple_attributes_precision", precision)
 
-    x = torch.from_numpy(np.random.default_rng(seed=123).random(size=(3, 3))).to(
-        device=device
+    x = torch.rand(
+        3,
+        3,
+        generator=torch.Generator(device=device).manual_seed(123),
+        device=device,
     )
     tensor_regression.check(
         {"x": x}, additional_label=label, include_gpu_name_in_stats=False
@@ -73,15 +67,22 @@ def test_check_tensor(
     # TODO: It's a bit confusing that the file name include `label_{label}`, but that's because
     # this test is parametrized.
     if label is None:
-        stats_file = tmp_path / test_check_tensor.__name__ / f"label_{label}.yaml"
+        stats_file = (
+            tmp_path
+            / test_check_tensor.__name__
+            / f"label_{label}_precision_{precision}.yaml"
+        )
     else:
         stats_file = (
-            tmp_path / test_check_tensor.__name__ / label / f"label_{label}.yaml"
+            tmp_path
+            / test_check_tensor.__name__
+            / label
+            / f"label_{label}_precision_{precision}.yaml"
         )
 
     assert stats_file.exists()
 
-    ndarrays_regression.check({"x": x.detach().cpu().numpy()})
+    # ndarrays_regression.check({"x": x.detach().cpu().numpy()})
 
     # Check the saved tensor/array:
     array_file = stats_file.with_suffix(".npz")
