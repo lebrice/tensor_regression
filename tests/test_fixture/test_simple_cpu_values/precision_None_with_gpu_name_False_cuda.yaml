@@ -17,3 +17,12 @@ b:
   - 3
   - 3
   sum: 3.7664806842803955
+some_int:
+  device: cuda:0
+  hash: 891674017800185211
+  max: 4
+  mean: 2.0
+  min: 0
+  shape:
+  - 5
+  sum: 10

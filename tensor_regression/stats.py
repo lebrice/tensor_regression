@@ -37,8 +37,8 @@ def list_simple_attributes(some_list: list[Any], precision: int | None):
         **{
             f"{i}": get_simple_attributes(item, precision=precision)
             for i, item in enumerate(
-                some_list[:10]
-            )  # don't show all items, becomes redundant.
+                some_list[:10]  # don't show all items, becomes redundant.
+            )
         },
     }
 
@@ -52,6 +52,8 @@ def dict_simple_attributes(some_dict: dict[str, Any], precision: int | None):
 
 def _maybe_round(v, precision: int | None):
     if precision is not None:
+        if isinstance(v, int) or (isinstance(v, np.ndarray) and v.dtype.kind == "i"):
+            return v
         return np.format_float_scientific(v, precision=precision)
     return v
 

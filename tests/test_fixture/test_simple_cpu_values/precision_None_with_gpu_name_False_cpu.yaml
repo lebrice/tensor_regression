@@ -17,3 +17,12 @@ b:
   - 3
   - 3
   sum: 3.116511344909668
+some_int:
+  device: cpu
+  hash: 891674017800185211
+  max: 4
+  mean: 2.0
+  min: 0
+  shape:
+  - 5
+  sum: 10

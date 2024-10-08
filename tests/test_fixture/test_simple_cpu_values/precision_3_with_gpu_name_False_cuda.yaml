@@ -1,4 +1,3 @@
-GPU: FAKE_GPU_NAME
 a:
   device: cuda:0
   hash: -8753497827991233192
@@ -18,3 +17,12 @@ b:
   - 3
   - 3
   sum: '3.766e+00'
+some_int:
+  device: cuda:0
+  hash: 891674017800185211
+  max: 4
+  mean: '2.e+00'
+  min: 0
+  shape:
+  - 5
+  sum: 10
