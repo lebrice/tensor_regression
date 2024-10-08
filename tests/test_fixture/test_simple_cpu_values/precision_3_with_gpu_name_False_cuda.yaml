@@ -1,5 +1,6 @@
 a:
   device: cuda:0
+  dtype: torch.float32
   hash: -8753497827991233192
   max: '0.e+00'
   mean: '0.e+00'
@@ -9,6 +10,7 @@ a:
   sum: '0.e+00'
 b:
   device: cuda:0
+  dtype: torch.float32
   hash: -3124714033082513295
   max: '9.448e-01'
   mean: '4.185e-01'
@@ -17,8 +19,19 @@ b:
   - 3
   - 3
   sum: '3.766e+00'
+some_array:
+  dtype: numpy.float64
+  hash: -9102881966404773529
+  max: '9.233e-01'
+  mean: '4.61e-01'
+  min: '5.382e-02'
+  shape:
+  - 3
+  - 3
+  sum: '4.149e+00'
 some_int:
   device: cuda:0
+  dtype: torch.int32
   hash: 891674017800185211
   max: 4
   mean: '2.e+00'

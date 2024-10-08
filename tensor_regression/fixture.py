@@ -247,11 +247,12 @@ class TensorRegressionFixture:
             # the simple attributes file should already have been generated and saved in git.
             assert simple_attributes_source_file.exists()
             # NOTE: No need to do this step here. Saves us a super super tiny amount of time.
-            # logger.debug("Checking that the hashes of the full arrays still match.")
-            # self.pre_check(
-            #     data_dict,
-            #     simple_attributes_source_file=simple_attributes_source_file,
-            # )
+            logger.debug("Checking that the hashes of the full arrays still match.")
+            self.pre_check(
+                data_dict,
+                simple_attributes_source_file=simple_attributes_source_file,
+                include_gpu_name_in_stats=include_gpu_name_in_stats,
+            )
             return
 
         if simple_attributes_source_file.exists():
