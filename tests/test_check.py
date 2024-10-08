@@ -146,5 +146,9 @@ def test_reproduce_hashing_issue(
     # Create a stats file with garbage contents
     stats_file.write_text("garbage")
 
-    # this will *not* raise an error!
-    tensor_regression.check({"x": torch.zeros(1)}, include_gpu_name_in_stats=False)
+    # this would not raise an error, but it now does:
+    with pytest.raises(
+        (AssertionError, Failed),
+        match="-garbage",
+    ):
+        tensor_regression.check({"x": torch.zeros(1)}, include_gpu_name_in_stats=False)
