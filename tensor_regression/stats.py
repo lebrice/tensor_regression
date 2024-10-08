@@ -62,11 +62,12 @@ def _maybe_round(v, precision: int | None):
 def ndarray_simple_attributes(array: np.ndarray, precision: int | None) -> dict:
     return {
         "shape": tuple(array.shape),
+        "dtype": f"numpy.{array.dtype}",
         "hash": _hash(array),
         "min": _maybe_round(array.min().item(), precision=precision),
         "max": _maybe_round(array.max().item(), precision=precision),
         "sum": _maybe_round(array.sum().item(), precision=precision),
-        "mean": _maybe_round(array.mean(), precision=precision),
+        "mean": _maybe_round(array.mean().item(), precision=precision),
     }
 
 
@@ -79,9 +80,8 @@ def tensor_simple_attributes(tensor: Tensor, precision: int | None) -> dict:
         tensor = tensor.to_padded_tensor(padding=0.0)
 
     return {
-        "shape": tuple(tensor.shape)
-        if not tensor.is_nested
-        else _get_shape_ish(tensor),
+        "shape": _get_shape_ish(tensor),
+        "dtype": str(tensor.dtype),
         "hash": _hash(tensor),
         "min": _maybe_round(tensor.min().item(), precision),
         "max": _maybe_round(tensor.max().item(), precision),
@@ -102,17 +102,17 @@ def _hash(v: Any) -> int:
 
 @_hash.register(Tensor)
 def tensor_hash(tensor: Tensor) -> int:
-    return hash(tuple(tensor.flatten().tolist()))
+    return ndarray_hash(tensor.detach().cpu().numpy())
 
 
 @_hash.register(np.ndarray)
 def ndarray_hash(array: np.ndarray) -> int:
-    return hash(tuple(array.flat))
+    return hash(tuple(array.flatten().tolist()))
 
 
 def _get_shape_ish(t: Tensor) -> tuple[int | Literal["?"], ...]:
     if not t.is_nested:
-        return t.shape
+        return tuple(t.shape)
     dim_sizes = []
     for dim in range(t.ndim):
         try:
