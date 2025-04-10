@@ -1,10 +1,10 @@
 """End-to-end tests for the fixture."""
+
 import numpy as np
-from tensor_regression import TensorRegressionFixture
 import pytest
 import torch
-from tensor_regression import fixture
 
+from tensor_regression import TensorRegressionFixture, fixture
 from tensor_regression.fixture import get_gpu_names
 
 
@@ -21,9 +21,7 @@ from tensor_regression.fixture import get_gpu_names
     ],
     indirect=True,
 )
-@pytest.mark.parametrize(
-    "include_gpu_in_stats", [False, True], ids="with_gpu_name={}".format
-)
+@pytest.mark.parametrize("include_gpu_in_stats", [False, True], ids="with_gpu_name={}".format)
 @pytest.mark.parametrize("precision", [None, 3], ids="precision={}".format)
 def test_simple_cpu_values(
     tensor_regression: TensorRegressionFixture,

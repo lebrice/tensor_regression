@@ -5,9 +5,11 @@ from pathlib import Path
 import numpy as np
 import pytest
 import torch
+import yaml
 from pytest_regressions.ndarrays_regression import NDArraysRegressionFixture
 
 from tensor_regression import TensorRegressionFixture
+from tensor_regression.fixture import FilesDidntExist
 
 
 @contextlib.contextmanager
@@ -15,9 +17,7 @@ def seeded(seed: int, devices: list[torch.device] | None = None):
     random_state = random.getstate()
     np_random_state = np.random.get_state()
     if devices is None:
-        devices = [
-            torch.device("cuda", index=i) for i in range(torch.cuda.device_count())
-        ]
+        devices = [torch.device("cuda", index=i) for i in range(torch.cuda.device_count())]
     with torch.random.fork_rng(devices=devices):
         torch.manual_seed(seed)
         random.seed(seed)
@@ -59,18 +59,14 @@ def test_check_tensor(
         generator=torch.Generator(device=device).manual_seed(123),
         device=device,
     )
-    tensor_regression.check(
-        {"x": x}, additional_label=label, include_gpu_name_in_stats=False
-    )
+    tensor_regression.check({"x": x}, additional_label=label, include_gpu_name_in_stats=False)
 
     # Check that stats were saved:
     # TODO: It's a bit confusing that the file name include `label_{label}`, but that's because
     # this test is parametrized.
     if label is None:
         stats_file = (
-            tmp_path
-            / test_check_tensor.__name__
-            / f"label_{label}_precision_{precision}.yaml"
+            tmp_path / test_check_tensor.__name__ / f"label_{label}_precision_{precision}.yaml"
         )
     else:
         stats_file = (
@@ -120,6 +116,7 @@ def test_non_parametrized_test(
     assert stats_file.exists()
 
 
+@pytest.mark.xfail(reason="Hashes aren't included in the regression files anymore.")
 def test_reproduce_hashing_issue(
     tensor_regression: TensorRegressionFixture,
     monkeypatch: pytest.MonkeyPatch,
@@ -152,3 +149,54 @@ def test_reproduce_hashing_issue(
         match="-garbage",
     ):
         tensor_regression.check({"x": torch.zeros(1)}, include_gpu_name_in_stats=False)
+
+
+@pytest.mark.parametrize("label", [None, "some_label"], ids="label={}".format)
+def test_extra_hash_in_file_doesnt_cause_errors(
+    tensor_regression: TensorRegressionFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    device: torch.device,
+    label: str | None,
+):
+    """The 'hash' of the array was removed from the simple attributes file. We don't want to
+    break backward compatibility, so if there are any extra "hash" keys in the files, they should
+    be simply dropped instead of raising an error.
+    """
+
+    monkeypatch.setattr(tensor_regression, "original_datadir", tmp_path)
+    monkeypatch.setattr(tensor_regression, "generate_missing_files", False)
+
+    x = torch.zeros(1, device=device)
+    with pytest.raises(FilesDidntExist):
+        # try:
+        tensor_regression.check({"x": x}, additional_label=label, include_gpu_name_in_stats=False)
+    # except FilesDidntExist:
+    #     pass
+    # Check that stats were saved:
+    # TODO: It's a bit confusing that the file name include `label_{label}`, but that's because
+    # this test is parametrized.
+    if label is None:
+        stats_file = (
+            tmp_path / test_extra_hash_in_file_doesnt_cause_errors.__name__ / f"label_{label}.yaml"
+        )
+    else:
+        stats_file = (
+            tmp_path
+            / test_extra_hash_in_file_doesnt_cause_errors.__name__
+            / label
+            / f"label_{label}.yaml"
+        )
+
+    assert stats_file.exists()
+
+    with open(stats_file, "r") as f:
+        stats = yaml.safe_load(f.read())
+
+    assert isinstance(stats, dict)
+    assert "hash" not in stats, "The hash key should not be present in the file."
+    with open(stats_file, "w") as f:
+        f.write(yaml.dump({**stats, "hash": "some_hash_value"}))
+
+    # Should pass without complaining about the missing 'hash' key!
+    tensor_regression.check({"x": x}, additional_label=label, include_gpu_name_in_stats=False)
