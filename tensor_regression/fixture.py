@@ -9,6 +9,7 @@ from typing import Any, TypedDict
 import numpy as np
 import pytest
 import torch
+import yaml
 from _pytest.outcomes import Failed
 from pytest_regressions.data_regression import DataRegressionFixture
 from pytest_regressions.ndarrays_regression import NDArraysRegressionFixture
@@ -305,8 +306,31 @@ class TensorRegressionFixture:
             elif _gpu_names:
                 version_controlled_simple_attributes["GPUS"] = _gpu_names
 
+        # idea: remove any 'hash' items in the source file.
+        # BUG: If the user saved something like {"hash": 123} then this will break things!
+
+        def _remove_hash(d: dict[str, Any]) -> None:
+            for k, v in list(d.items()):
+                if k == "hash" and isinstance(v, (int, str)):
+                    # Remove the hash entry.
+                    d.pop(k)
+                if isinstance(v, dict):
+                    # Recursively remove hash entries in sub-dicts.
+                    _remove_hash(v)
+
+        if simple_attributes_source_file.exists() and "hash:" in (
+            content_str := simple_attributes_source_file.read_text()
+        ):
+            content = yaml.safe_load(content_str)
+            assert isinstance(content, dict)
+            logger.warning("Updating regression files in-place to remove a removed 'hash' entry.")
+            _remove_hash(content)
+            simple_attributes_source_file.write_text(yaml.dump(content))
+
         self.data_regression.check(
-            version_controlled_simple_attributes, fullpath=simple_attributes_source_file
+            version_controlled_simple_attributes,
+            fullpath=simple_attributes_source_file,
+            # round_digits=self.simple_attributes_precision, # todo: use this instead?
         )
 
     def regular_check(

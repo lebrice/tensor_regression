@@ -169,11 +169,8 @@ def test_extra_hash_in_file_doesnt_cause_errors(
 
     x = torch.zeros(1, device=device)
     with pytest.raises(FilesDidntExist):
-        # try:
         tensor_regression.check({"x": x}, additional_label=label, include_gpu_name_in_stats=False)
-    # except FilesDidntExist:
-    #     pass
-    # Check that stats were saved:
+
     # TODO: It's a bit confusing that the file name include `label_{label}`, but that's because
     # this test is parametrized.
     if label is None:
@@ -196,7 +193,7 @@ def test_extra_hash_in_file_doesnt_cause_errors(
     assert isinstance(stats, dict)
     assert "hash" not in stats, "The hash key should not be present in the file."
     with open(stats_file, "w") as f:
-        f.write(yaml.dump({**stats, "hash": "some_hash_value"}))
+        f.write(yaml.dump({**stats, "hash": 8923489712398471}))
 
-    # Should pass without complaining about the missing 'hash' key!
+    # Should complain about the missing 'hash' key.
     tensor_regression.check({"x": x}, additional_label=label, include_gpu_name_in_stats=False)
