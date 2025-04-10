@@ -8,8 +8,6 @@ on:
     branches:
       - master
   pull_request:
-    paths-ignore:
-      - 'docs/**'
 
 permissions:
   contents: read
@@ -24,15 +22,36 @@ jobs:
   linting:
     name: Run linting/pre-commit checks
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v4
         with:
-          python-version: '3.12'
-      - run: pip install "pre-commit<4.0.0"
+          python-version: "3.12"
+      - run: pip install 'pre-commit<4.0.0'
       - run: pre-commit --version
       - run: pre-commit install
-      - run: pre-commit run --all-files
+      - run: pre-commit run --all-files --show-diff-on-failure
+
+  check_docs:
+    needs: [linting]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+          enable-cache: true
+          # https://github.com/astral-sh/setup-uv?tab=readme-ov-file#github-authentication-token
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache-suffix: "3.12"
+      - name: Pin python-version 3.12
+        run: uv python pin 3.12
+      - name: Install dependencies
+        run: uv sync --frozen
+      # - name: Build the documentation (strict mode)
+      #   run: uv run mkdocs build --strict
 
   unit_tests:
     needs: [linting]
@@ -40,35 +59,36 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        platform: [ubuntu-latest]
+        platform: ["ubuntu-latest", "macos-latest"]
         python-version: ["3.10", "3.11", "3.12"]
     steps:
-    - uses: actions/checkout@v4
-    - name: Install poetry
-      run: pipx install poetry
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-        cache: "poetry"
-    - name: Install dependencies
-      run: poetry install
-    - name: Run tests (CPU)
-      env:
-        JAX_PLATFORMS: cpu
-      run: poetry run pytest -v --cov=tensor_regression --cov-report=xml --cov-append
-
-    - name: Store coverage report as an artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage-reports-unit-tests-${{ matrix.platform }}-${{ matrix.python-version }}
-        path: ./coverage.xml
+      - uses: actions/checkout@v4
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+          enable-cache: true
+          # https://github.com/astral-sh/setup-uv?tab=readme-ov-file#github-authentication-token
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache-suffix: ${{ matrix.python-version }}
+      - name: Pin python-version ${{ matrix.python-version }}
+        run: uv python pin ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: uv sync --frozen
+      - name: Test with pytest
+        run: uv run pytest -v --cov=tensor_regression --cov-report=xml --cov-append --gen-missing
+      - name: Store coverage report as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports-unit-tests-${{ matrix.platform }}-${{ matrix.python-version }}
+          path: ./coverage.xml
 
   # https://about.codecov.io/blog/uploading-code-coverage-in-a-separate-job-on-github-actions/
   upload-coverage-codecov:
     needs: [unit_tests]
     runs-on: ubuntu-latest
     name: Upload coverage reports to Codecov
+    timeout-minutes: 5
     steps:
       - name: Checkout
         uses: actions/checkout@v4
