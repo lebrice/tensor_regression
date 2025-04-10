@@ -1,0 +1,37 @@
+a:
+  device: cpu
+  dtype: torch.float32
+  max: 0.0
+  mean: 0.0
+  min: 0.0
+  shape:
+  - 1
+  sum: 0.0
+b:
+  device: cpu
+  dtype: torch.float32
+  max: 0.866521954536438
+  mean: 0.3462790250778198
+  min: 0.07397246360778809
+  shape:
+  - 3
+  - 3
+  sum: 3.116511344909668
+some_array:
+  dtype: numpy.float64
+  max: 0.9233449980270564
+  mean: 0.4609532145199573
+  min: 0.053821018802222675
+  shape:
+  - 3
+  - 3
+  sum: 4.148578930679616
+some_int:
+  device: cpu
+  dtype: torch.int32
+  max: 4
+  mean: 2.0
+  min: 0
+  shape:
+  - 5
+  sum: 10

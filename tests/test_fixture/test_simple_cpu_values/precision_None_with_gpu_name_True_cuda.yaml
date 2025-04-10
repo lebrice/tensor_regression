@@ -1,0 +1,38 @@
+GPU: FAKE_GPU_NAME
+a:
+  device: cuda:0
+  dtype: torch.float32
+  max: 0.0
+  mean: 0.0
+  min: 0.0
+  shape:
+  - 1
+  sum: 0.0
+b:
+  device: cuda:0
+  dtype: torch.float32
+  max: 0.9448105692863464
+  mean: 0.41849786043167114
+  min: 0.007865429855883121
+  shape:
+  - 3
+  - 3
+  sum: 3.7664806842803955
+some_array:
+  dtype: numpy.float64
+  max: 0.9233449980270564
+  mean: 0.4609532145199573
+  min: 0.053821018802222675
+  shape:
+  - 3
+  - 3
+  sum: 4.148578930679616
+some_int:
+  device: cuda:0
+  dtype: torch.int32
+  max: 4
+  mean: 2.0
+  min: 0
+  shape:
+  - 5
+  sum: 10

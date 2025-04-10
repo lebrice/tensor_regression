@@ -1,8 +1,0 @@
-x:
-  device: cpu
-  max: 0.0
-  mean: 0.0
-  min: 0.0
-  shape:
-  - 1
-  sum: 0.0

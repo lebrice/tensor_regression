@@ -116,7 +116,6 @@ def test_non_parametrized_test(
     assert stats_file.exists()
 
 
-@pytest.mark.xfail(reason="Hashes aren't included in the regression files anymore.")
 def test_reproduce_hashing_issue(
     tensor_regression: TensorRegressionFixture,
     monkeypatch: pytest.MonkeyPatch,
