@@ -25,8 +25,7 @@ def get_version_controlled_attributes(
     data_dict: dict[str, Any], precision: int | None
 ) -> dict[str, Any]:
     return {
-        key: get_simple_attributes(value, precision=precision)
-        for key, value in data_dict.items()
+        key: get_simple_attributes(value, precision=precision) for key, value in data_dict.items()
     }
 
 
@@ -38,11 +37,11 @@ class Tolerance(TypedDict, total=False):
 
 
 class TensorRegressionFixture:
-    """Save some statistics (and a hash) of tensors in a file that is saved with git, but save the
+    """Save some statistics of tensors in a file that is saved with git, but save the
     entire tensors in gitignored files.
 
     This way, the first time the tests run, they re-generate the full regression files, and check
-    that their contents' hash matches what is stored with git!
+    that their contents matches what is stored with git!
 
     TODO: Add a `--regen-missing` option (currently implicitly always true) that decides if we
     raise an error if a file is missing. (for example in unit tests we don't want this to be true!)
@@ -79,9 +78,7 @@ class TensorRegressionFixture:
         self.generate_missing_files = generate_missing_files
         self.skip_if_files_missing = skip_if_files_missing
 
-    def get_source_file(
-        self, extension: str, additional_subfolder: str | None = None
-    ) -> Path:
+    def get_source_file(self, extension: str, additional_subfolder: str | None = None) -> Path:
         source_file, _test_file = get_test_source_and_temp_file_paths(
             extension=extension,
             request=self.request,
@@ -126,9 +123,7 @@ class TensorRegressionFixture:
             return
 
         if "*.npz" in gitignore_file.read_text():
-            logger.debug(
-                "There is already an entry for npz files in the gitignore file."
-            )
+            logger.debug("There is already an entry for npz files in the gitignore file.")
             return
 
         logger.info(f"Adding some lines to the .gitignore file at {gitignore_file}")
@@ -171,9 +166,9 @@ class TensorRegressionFixture:
             runs of the same test (e.g. in the GitHub CI).
         """
         # IDEA:
-        # - Get the hashes of each array, and actually run the regression check first with those files.
+        # - Get the stats of each array, and actually run the regression check first with those files.
         # - Then, if that check passes, run the actual check with the full files.
-        # NOTE: If the array hash files exist, but the full files don't, then we should just
+        # NOTE: If the array stats files exist, but the full files don't, then we should just
         # re-create the full files instead of failing.
         # __tracebackhide__ = True
         self.add_gitignore_file_if_needed()
@@ -208,9 +203,7 @@ class TensorRegressionFixture:
 
         if regen_all:
             if self.generate_missing_files:
-                raise RuntimeError(
-                    "--gen-missing can't be used at the same time as --regen-all!"
-                )
+                raise RuntimeError("--gen-missing can't be used at the same time as --regen-all!")
             if self.skip_if_files_missing:
                 raise RuntimeError(
                     "--skip-if-files-missing can't be used at the same time as --regen-all!"
@@ -225,9 +218,7 @@ class TensorRegressionFixture:
             logger.info(f"Full arrays file found at {arrays_source_file}.")
             if not simple_attributes_source_file.exists():
                 # Weird: the simple attributes file doesn't exist. Re-create it if allowed.
-                with dont_fail_if_files_are_missing(
-                    enabled=bool(self.generate_missing_files)
-                ):
+                with dont_fail_if_files_are_missing(enabled=bool(self.generate_missing_files)):
                     self.pre_check(
                         data_dict,
                         simple_attributes_source_file=simple_attributes_source_file,
@@ -235,7 +226,7 @@ class TensorRegressionFixture:
                     )
 
             # We already generated the file with the full tensors (and we also already checked
-            # that their hashes correspond to what we expect.)
+            # that their stats correspond to what we expect.)
             # 1. Check that they match the data_dict.
             logger.info("Checking the full arrays.")
             self.regular_check(
@@ -247,7 +238,7 @@ class TensorRegressionFixture:
             # the simple attributes file should already have been generated and saved in git.
             assert simple_attributes_source_file.exists()
             # NOTE: No need to do this step here. Saves us a super super tiny amount of time.
-            logger.debug("Checking that the hashes of the full arrays still match.")
+            logger.debug("Checking that the stats of the full arrays still match.")
             self.pre_check(
                 data_dict,
                 simple_attributes_source_file=simple_attributes_source_file,
@@ -256,9 +247,7 @@ class TensorRegressionFixture:
             return
 
         if simple_attributes_source_file.exists():
-            logger.debug(
-                f"Simple attributes file found at {simple_attributes_source_file}."
-            )
+            logger.debug(f"Simple attributes file found at {simple_attributes_source_file}.")
             logger.debug(f"Regenerating the full arrays at {arrays_source_file}")
             # Go straight to the full check.
             with dont_fail_if_files_are_missing():
@@ -270,7 +259,7 @@ class TensorRegressionFixture:
                 )
             logger.debug(
                 "Checking if the newly-generated full tensor regression files match the expected "
-                "attributes and hashes."
+                "attributes and stats."
             )
             self.pre_check(
                 data_dict,
@@ -279,9 +268,7 @@ class TensorRegressionFixture:
             )
             return
 
-        logger.warning(
-            f"Creating the simple attributes file at {simple_attributes_source_file}."
-        )
+        logger.debug(f"Creating the simple attributes file at {simple_attributes_source_file}.")
 
         with dont_fail_if_files_are_missing(enabled=bool(self.generate_missing_files)):
             self.pre_check(
@@ -307,11 +294,11 @@ class TensorRegressionFixture:
         version_controlled_simple_attributes = get_version_controlled_attributes(
             data_dict, precision=self.simple_attributes_precision
         )
-        # Run the regression check with the hashes (and don't fail if they don't exist)
+        # Run the regression check with the stats (and don't fail if they don't exist)
         __tracebackhide__ = True
         if include_gpu_name_in_stats:
             # TODO: Figure out how to include/use the names of the GPUs:
-            # - Should it be part of the hash? Or should there be a subfolder for each GPU type?
+            # - Should it be part of the "hash"? Or should there be a subfolder for each GPU type?
             _gpu_names = sorted(set(get_gpu_names(data_dict)))
             if len(_gpu_names) == 1:
                 version_controlled_simple_attributes["GPU"] = _gpu_names[0]
@@ -336,9 +323,9 @@ class TensorRegressionFixture:
                 new_key = f"{key}"
                 assert new_key not in data_dict
                 key = new_key
-            assert isinstance(
-                key, str
-            ), f"The dictionary keys must be strings. Found key with type '{str(type(key))}'"
+            assert isinstance(key, str), (
+                f"The dictionary keys must be strings. Found key with type '{str(type(key))}'"
+            )
 
             ndarray_value = to_ndarray(array)
             if ndarray_value is None:
@@ -437,10 +424,7 @@ def _catch_fails_with_files_didnt_exist():
     try:
         yield
     except Failed as failure_exc:
-        if (
-            failure_exc.msg
-            and "File not found in data directory, created" in failure_exc.msg
-        ):
+        if failure_exc.msg and "File not found in data directory, created" in failure_exc.msg:
             raise FilesDidntExist(
                 failure_exc.msg
                 + "\n(Use the --gen-missing flag to create any missing regression files.)",

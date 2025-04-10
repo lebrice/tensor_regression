@@ -45,9 +45,7 @@ def list_simple_attributes(some_list: list[Any], precision: int | None):
 
 @get_simple_attributes.register(dict)
 def dict_simple_attributes(some_dict: dict[str, Any], precision: int | None):
-    return {
-        k: get_simple_attributes(v, precision=precision) for k, v in some_dict.items()
-    }
+    return {k: get_simple_attributes(v, precision=precision) for k, v in some_dict.items()}
 
 
 def _maybe_round(v, precision: int | None):
@@ -63,7 +61,7 @@ def ndarray_simple_attributes(array: np.ndarray, precision: int | None) -> dict:
     return {
         "shape": tuple(array.shape),
         "dtype": f"numpy.{array.dtype}",
-        "hash": _hash(array),
+        # "hash": _hash(array),
         "min": _maybe_round(array.min().item(), precision=precision),
         "max": _maybe_round(array.max().item(), precision=precision),
         "sum": _maybe_round(array.sum().item(), precision=precision),
@@ -82,32 +80,16 @@ def tensor_simple_attributes(tensor: Tensor, precision: int | None) -> dict:
     return {
         "shape": _get_shape_ish(tensor),
         "dtype": str(tensor.dtype),
-        "hash": _hash(tensor),
+        "shape": (tuple(tensor.shape) if not tensor.is_nested else _get_shape_ish(tensor)),
+        # "hash": _hash(tensor),
         "min": _maybe_round(tensor.min().item(), precision),
         "max": _maybe_round(tensor.max().item(), precision),
         "sum": _maybe_round(tensor.sum().item(), precision),
         "mean": _maybe_round(tensor.float().mean().item(), precision),
         "device": (
-            "cpu"
-            if tensor.device.type == "cpu"
-            else f"{tensor.device.type}:{tensor.device.index}"
+            "cpu" if tensor.device.type == "cpu" else f"{tensor.device.type}:{tensor.device.index}"
         ),
     }
-
-
-@functools.singledispatch
-def _hash(v: Any) -> int:
-    return hash(v)
-
-
-@_hash.register(Tensor)
-def tensor_hash(tensor: Tensor) -> int:
-    return ndarray_hash(tensor.detach().cpu().numpy())
-
-
-@_hash.register(np.ndarray)
-def ndarray_hash(array: np.ndarray) -> int:
-    return hash(tuple(array.flatten().tolist()))
 
 
 def _get_shape_ish(t: Tensor) -> tuple[int | Literal["?"], ...]:
