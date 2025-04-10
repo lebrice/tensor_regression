@@ -80,7 +80,6 @@ def tensor_simple_attributes(tensor: Tensor, precision: int | None) -> dict:
     return {
         "shape": _get_shape_ish(tensor),
         "dtype": str(tensor.dtype),
-        "shape": (tuple(tensor.shape) if not tensor.is_nested else _get_shape_ish(tensor)),
         # "hash": _hash(tensor),
         "min": _maybe_round(tensor.min().item(), precision),
         "max": _maybe_round(tensor.max().item(), precision),
