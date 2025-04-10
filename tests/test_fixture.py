@@ -1,4 +1,5 @@
 """End-to-end tests for the fixture."""
+import numpy as np
 from tensor_regression import TensorRegressionFixture
 import pytest
 import torch
@@ -44,6 +45,7 @@ def test_simple_cpu_values(
                 generator=torch.Generator(device=device).manual_seed(123),
                 device=device,
             ),
+            "some_array": np.random.default_rng(123).random((3, 3)),
         }
 
     tensor_regression.check(data, include_gpu_name_in_stats=include_gpu_in_stats)
