@@ -1,0 +1,40 @@
+site_name: Tensor-Regression Documentation
+site_description: A small wrapper to simplify using [pytest_regressions](https://github.com/ESSS/pytest-regressions) with Tensors.
+site_url: https://lebrice.github.io/TensorRegression/
+repo_url: https://www.github.com/lebrice/tensor_regression
+
+nav:
+  - Home: index.md
+  - Reference: reference.md
+theme:
+  name: material
+
+markdown_extensions:
+  - toc:
+      permalink: "#"
+      toc_depth: 3
+  - pymdownx.highlight
+  - pymdownx.magiclink
+  - pymdownx.superfences
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          import:
+            - https://docs.python-requests.org/en/master/objects.inv
+            - https://numpy.readthedocs.io/en/latest/objects.inv
+            - https://pytest-regressions.readthedocs.io/en/latest/objects.inv
+            - https://pytorch.org/docs/stable/objects.inv
+          options:
+            docstring_style: google
+            members_order: source
+            show_source: false
+            show_submodules: true
+            # annotations_path: brief
+            # show_docstring_attributes: true
+            modernize_annotations: true
+            separate_signature: true
+            signature_crossrefs: true
+            show_signature_annotations: true
