@@ -1,7 +1,6 @@
 a:
   device: cpu
   dtype: torch.float32
-  hash: -8753497827991233192
   max: 0.0
   mean: 0.0
   min: 0.0
@@ -11,7 +10,6 @@ a:
 b:
   device: cpu
   dtype: torch.float32
-  hash: -3887507461980948581
   max: 0.866521954536438
   mean: 0.3462790250778198
   min: 0.07397246360778809
@@ -21,7 +19,6 @@ b:
   sum: 3.116511344909668
 some_array:
   dtype: numpy.float64
-  hash: -9102881966404773529
   max: 0.9233449980270564
   mean: 0.4609532145199573
   min: 0.053821018802222675
@@ -32,7 +29,6 @@ some_array:
 some_int:
   device: cpu
   dtype: torch.int32
-  hash: 891674017800185211
   max: 4
   mean: 2.0
   min: 0
