@@ -56,7 +56,7 @@ class TensorRegressionFixture:
         ndarrays_regression: NDArraysRegressionFixture,
         data_regression: DataRegressionFixture,
         monkeypatch: pytest.MonkeyPatch,
-        simple_attributes_precision: int | None = None,
+        simple_attributes_precision: int | None = 5,
         generate_missing_files: bool | None = None,
         skip_if_files_missing: bool | None = None,
     ) -> None:

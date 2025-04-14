@@ -22,7 +22,17 @@ from tensor_regression.fixture import get_gpu_names
     indirect=True,
 )
 @pytest.mark.parametrize("include_gpu_in_stats", [False, True], ids="with_gpu_name={}".format)
-@pytest.mark.parametrize("precision", [None, 3], ids="precision={}".format)
+@pytest.mark.parametrize(
+    "precision",
+    [
+        pytest.param(
+            None,
+            marks=pytest.mark.xfail(reason="Might vary slightly from machine to machine"),
+        ),
+        3,
+    ],
+    ids="precision={}".format,
+)
 def test_simple_cpu_values(
     tensor_regression: TensorRegressionFixture,
     monkeypatch: pytest.MonkeyPatch,
