@@ -2,7 +2,6 @@ from argparse import BooleanOptionalAction
 from pathlib import Path
 
 import pytest
-import torch
 from pytest_regressions import data_regression, ndarrays_regression
 
 from .fixture import TensorRegressionFixture
@@ -35,10 +34,15 @@ def pytest_addoption(parser: pytest.Parser):
 @pytest.fixture
 def make_torch_deterministic():
     """Set torch to deterministic mode for unit tests that use the tensor_regression fixture."""
-    mode_before = torch.get_deterministic_debug_mode()
-    torch.set_deterministic_debug_mode("error")
-    yield
-    torch.set_deterministic_debug_mode(mode_before)
+    try:
+        import torch
+
+        mode_before = torch.get_deterministic_debug_mode()
+        torch.set_deterministic_debug_mode("error")
+        yield
+        torch.set_deterministic_debug_mode(mode_before)
+    except ImportError:
+        yield
 
 
 @pytest.fixture
