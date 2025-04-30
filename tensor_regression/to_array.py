@@ -2,7 +2,6 @@ import functools
 from typing import Any
 
 import numpy as np
-import torch
 
 
 @functools.singledispatch
@@ -28,8 +27,13 @@ def _list_to_ndarray(v: list) -> np.ndarray:
     return np.asarray(v)
 
 
-@to_ndarray.register(torch.Tensor)
-def _tensor_to_ndarray(v: torch.Tensor) -> np.ndarray:
-    if v.is_nested:
-        v = v.to_padded_tensor(padding=0.0)
-    return v.detach().cpu().numpy()
+try:
+    import torch
+
+    @to_ndarray.register(torch.Tensor)
+    def _tensor_to_ndarray(v: torch.Tensor) -> np.ndarray:
+        if v.is_nested:
+            v = v.to_padded_tensor(padding=0.0)
+        return v.detach().cpu().numpy()
+except ImportError:
+    pass

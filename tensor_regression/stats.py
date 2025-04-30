@@ -2,7 +2,6 @@ import functools
 from typing import Any, Literal
 
 import numpy as np
-from torch import Tensor
 
 
 @functools.singledispatch
@@ -69,35 +68,41 @@ def ndarray_simple_attributes(array: np.ndarray, precision: int | None) -> dict:
     }
 
 
-@get_simple_attributes.register(Tensor)
-def tensor_simple_attributes(tensor: Tensor, precision: int | None) -> dict:
-    if tensor.is_nested:
-        # assert not [tensor_i.any() for tensor_i in tensor.unbind()], tensor
-        # TODO: It might be a good idea to make a distinction here between '0' as the default, and
-        # '0' as a value in the tensor? Hopefully this should be clear enough.
-        tensor = tensor.to_padded_tensor(padding=0.0)
+try:
+    import torch
 
-    return {
-        "shape": _get_shape_ish(tensor),
-        "dtype": str(tensor.dtype),
-        # "hash": _hash(tensor),
-        "min": _maybe_round(tensor.min().item(), precision),
-        "max": _maybe_round(tensor.max().item(), precision),
-        "sum": _maybe_round(tensor.sum().item(), precision),
-        "mean": _maybe_round(tensor.float().mean().item(), precision),
-        "device": (
-            "cpu" if tensor.device.type == "cpu" else f"{tensor.device.type}:{tensor.device.index}"
-        ),
-    }
+    @get_simple_attributes.register(torch.Tensor)
+    def tensor_simple_attributes(tensor: torch.Tensor, precision: int | None) -> dict:
+        if tensor.is_nested:
+            # assert not [tensor_i.any() for tensor_i in tensor.unbind()], tensor
+            # TODO: It might be a good idea to make a distinction here between '0' as the default, and
+            # '0' as a value in the tensor? Hopefully this should be clear enough.
+            tensor = tensor.to_padded_tensor(padding=0.0)
 
+        return {
+            "shape": _get_shape_ish(tensor),
+            "dtype": str(tensor.dtype),
+            # "hash": _hash(tensor),
+            "min": _maybe_round(tensor.min().item(), precision),
+            "max": _maybe_round(tensor.max().item(), precision),
+            "sum": _maybe_round(tensor.sum().item(), precision),
+            "mean": _maybe_round(tensor.float().mean().item(), precision),
+            "device": (
+                "cpu"
+                if tensor.device.type == "cpu"
+                else f"{tensor.device.type}:{tensor.device.index}"
+            ),
+        }
 
-def _get_shape_ish(t: Tensor) -> tuple[int | Literal["?"], ...]:
-    if not t.is_nested:
-        return tuple(t.shape)
-    dim_sizes = []
-    for dim in range(t.ndim):
-        try:
-            dim_sizes.append(t.size(dim))
-        except RuntimeError:
-            dim_sizes.append("?")
-    return tuple(dim_sizes)
+    def _get_shape_ish(t: torch.Tensor) -> tuple[int | Literal["?"], ...]:
+        if not t.is_nested:
+            return tuple(t.shape)
+        dim_sizes = []
+        for dim in range(t.ndim):
+            try:
+                dim_sizes.append(t.size(dim))
+            except RuntimeError:
+                dim_sizes.append("?")
+        return tuple(dim_sizes)
+except ImportError:
+    pass

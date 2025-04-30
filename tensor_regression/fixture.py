@@ -1,4 +1,5 @@
 import contextlib
+import functools
 import os
 import re
 from collections.abc import Mapping
@@ -7,13 +8,12 @@ from pathlib import Path
 from typing import Any, TypedDict
 
 import numpy as np
+import optree
 import pytest
-import torch
 import yaml
 from _pytest.outcomes import Failed
 from pytest_regressions.data_regression import DataRegressionFixture
 from pytest_regressions.ndarrays_regression import NDArraysRegressionFixture
-from torch import Tensor
 
 from .flatten import flatten_dict
 from .stats import get_simple_attributes
@@ -414,13 +414,30 @@ def get_test_source_and_temp_file_paths(
     return source_file, test_file
 
 
+@functools.singledispatch
+def get_gpu_name(v: Any) -> str | None:
+    return None
+
+
+try:
+    import torch
+
+    @get_gpu_name.register(torch.Tensor)
+    def get_tensor_gpu_name(v: torch.Tensor) -> str | None:
+        if v.device.type == "cuda":
+            return torch.cuda.get_device_name(v.device)
+        return None
+except ImportError:
+    pass
+
+
 def get_gpu_names(data_dict: dict[str, Any]) -> list[str]:
     """Returns the names of the GPUS that tensors in this dict are on."""
     return sorted(
         set(
-            torch.cuda.get_device_name(tensor.device)
-            for tensor in flatten_dict(data_dict).values()
-            if isinstance(tensor, Tensor) and tensor.device.type == "cuda"
+            v
+            for v in optree.tree_flatten(optree.tree_map(get_tensor_gpu_name, data_dict))[0]
+            if v is not None
         )
     )
 
