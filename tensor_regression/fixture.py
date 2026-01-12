@@ -436,7 +436,7 @@ def get_gpu_names(data_dict: dict[str, Any]) -> list[str]:
     return sorted(
         set(
             v
-            for v in optree.tree_flatten(optree.tree_map(get_tensor_gpu_name, data_dict))[0]
+            for v in optree.tree_flatten(optree.tree_map(get_gpu_name, data_dict))[0]
             if v is not None
         )
     )
