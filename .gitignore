@@ -164,3 +164,8 @@ cython_debug/
 
 # Ignore tensor regression files.
 *.npz
+
+
+# For libraries, we ignore the uv.lock file.
+# For projects, we include it.
+uv.lock
