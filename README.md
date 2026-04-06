@@ -19,26 +19,22 @@ flowchart TD
     B --> C{"--skip-if-files-missing\nand any file missing?"}
     C -->|Yes| SKIP(["⏭ Skip test"])
     C -->|No| D{"--regen-all?"}
-    D -->|Yes| E["Delete .yaml and .npz\n(if they exist)"]
-    E --> F
-    D -->|No| F{".npz file exists?"}
+    D -->|Yes| E["Regenerate both .yaml and .npz\nfrom current data"]
+    E --> PASS0(["✅ PASS\n(files regenerated)"])
+    D -->|No| F{".npz file exists?\n(always gitignored)"}
 
-    F -->|Yes| G{".yaml file exists?"}
-    G -->|No| H["Recreate .yaml\nfrom current data stats"]
-    H --> I["Compare full tensors\nvs saved .npz"]
-    G -->|Yes| I
+    F -->|Yes, .yaml also exists| I["Compare full tensors\nvs saved .npz"]
     I -->|Mismatch| FAIL1(["❌ FAIL\nTensor values changed"])
     I -->|Match| J["Compare stats\nvs saved .yaml"]
     J -->|Mismatch| FAIL2(["❌ FAIL\nStats changed"])
     J -->|Match| PASS1(["✅ PASS"])
 
-    F -->|No| K{".yaml file exists?"}
-    K -->|Yes| L["Recreate .npz\nfrom current tensors"]
+    F -->|No, only .yaml exists| L["Recreate .npz\nfrom current tensors"]
     L --> M["Compare stats\nvs saved .yaml"]
     M -->|Mismatch| FAIL3(["❌ FAIL\nStats mismatch"])
     M -->|Match| PASS2(["✅ PASS\n(.npz regenerated)"])
 
-    K -->|No| N["Create .yaml and .npz\nfrom current data"]
+    F -->|No, .yaml also missing| N["Create .yaml then .npz\nfrom current data"]
     N -->|"--gen-missing=True (default)"| PASS3(["✅ PASS\n(files created)"])
     N -->|"--gen-missing=False"| FAIL4(["❌ FAIL\nFiles missing"])
 ```
